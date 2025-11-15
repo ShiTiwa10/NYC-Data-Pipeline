@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+data_env/
+test_env/
+.venv/
+
+.env
+*.env
+
+data/
+*.parquet
+*.csv
+*.zip
+
+.vscode/
+.idea/
+.DS_Store
