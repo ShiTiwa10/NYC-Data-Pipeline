@@ -29,7 +29,7 @@ HOURLY_PARAMS = [
     "relative_humidity_2m",
     "wind_speed_10m",
 ]
-SHAPEFILE_PATH = Path("assets/geospatial/nyc_neighborhoods/nynta2020.shp")
+SHAPEFILE_PATH = Path("assets/geospatial/nyc_neighborhoods_2025/nynta2020.shp")
 
 
 API_HOURLY_LIMIT = 4500  # To handle Open-Meteo's 5000 calls/hour limits
