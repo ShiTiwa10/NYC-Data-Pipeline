@@ -1,15 +1,14 @@
 # Urban Mobility Context Engine (NYC)
 
-![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 ![Tech](https://img.shields.io/badge/Stack-Airflow_|_dbt_|_PostGIS-blue)
 
-This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City[cite: 1]. The pipeline ingests chaotic, disparate urban data streams—from raw Socrata APIs to geospatial polygons—and instills analytical order, creating a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns[cite: 1].
+This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City[cite: 1]. The pipeline ingests chaotic, disparate urban data streams—from raw Socrata APIs to geospatial polygons—and instills analytical order, creating a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns.
 
 ---
 
 ## Tech Stack & Architecture
 
-This pipeline is built on a modern, local-first ELT framework utilizing a **Medallion Architecture**[cite: 1].
+This pipeline is built on a modern, local-first ELT framework utilizing a **Medallion Architecture**.
 
 | Category | Technology |
 | :--- | :--- |
@@ -28,10 +27,10 @@ graph LR
     C -->|dbt join/agg| D[(Marts / Gold)]
 ```
 
-1.  **Extract & Load (EL):** Idempotent Python ingestor classes, orchestrated by Airflow via logical execution dates, fetch data from various sources and load it into a **Bronze** `raw` schema in Postgres[cite: 1].
-2.  **Transform (T):** `dbt` runs all downstream transformations[cite: 1]:
-    * **Silver 🥈:** `staging` models that clean, standardize types, and enforce data quality tests[cite: 1].
-    * **Gold 🥇:** Final, denormalized `marts` tables (Star Schema) that join all context layers into a single pane of glass[cite: 1].
+1.  **Extract & Load (EL):** Idempotent Python ingestor classes, orchestrated by Airflow via logical execution dates, fetch data from various sources and load it into a **Bronze** `raw` schema in Postgres.
+2.  **Transform (T):** `dbt` runs all downstream transformations:
+    * **Silver :** `staging` models that clean, standardize types, and enforce data quality tests.
+    * **Gold :** Final, denormalized `marts` tables (Star Schema) that join all context layers into a single pane of glass.
 
 ---
 
@@ -40,15 +39,15 @@ graph LR
 Rather than relying on static, generalized weather data for the entirety of New York City, this pipeline implements highly localized geospatial processing to map atmospheric conditions directly to specific boroughs and neighborhoods.
 
 ### 1. Shapefile Ingestion & PostGIS Integration
-The spatial foundation is built using the 2020 NYC Neighborhood Tabulation Areas (NTA) shapefiles. The `shapefile_setup.py` script leverages `GeoPandas` and SQLAlchemy to read the `.shp` assets and write the raw geometries directly into a PostGIS-enabled database utilizing the native `to_postgis()` method[cite: 1].
+The spatial foundation is built using the 2020 NYC Neighborhood Tabulation Areas (NTA) shapefiles. The `shapefile_setup.py` script leverages `GeoPandas` and SQLAlchemy to read the `.shp` assets and write the raw geometries directly into a PostGIS-enabled database utilizing the native `to_postgis()` method.
 
 ### 2. Dynamic Centroid Extraction
-To achieve micro-climate accuracy, the `WeatherIngestor` dynamically calculates the geometric centroid of every single NYC neighborhood polygon. Because the source shapefiles use a local projected coordinate system, the script reprojects the geometries to WGS 84 (EPSG:4326) on the fly to extract accurate latitude and longitude coordinates for the API payload[cite: 1].
+To achieve micro-climate accuracy, the `WeatherIngestor` dynamically calculates the geometric centroid of every single NYC neighborhood polygon. Because the source shapefiles use a local projected coordinate system, the script reprojects the geometries to WGS 84 (EPSG:4326) on the fly to extract accurate latitude and longitude coordinates for the API payload.
 
 ### 3. Asynchronous Rate Limiting & Staging
 Fetching hourly data for over a hundred neighborhood centroids over historical timeframes requires strict traffic control. 
-* **Traffic Shaping:** The ingestor mathematically paces requests to stay under Open-Meteo's 5,000 calls/hour threshold, implementing a rolling cost tracker, a 4-second delay between calls, and automatic hour-long sleep cycles if limits are approached[cite: 1].
-* **Optimized I/O:** Instead of bombarding the database with constant `INSERT` statements, the ingestor aggregates the API responses into memory, saves them locally as Snappy-compressed Parquet files via `PyArrow`, and executes massive bulk loads into PostgreSQL in chunks of 100,000 records[cite: 1].
+* **Traffic Shaping:** The ingestor mathematically paces requests to stay under Open-Meteo's 5,000 calls/hour threshold, implementing a rolling cost tracker, a 4-second delay between calls, and automatic hour-long sleep cycles if limits are approached.
+* **Optimized I/O:** Instead of bombarding the database with constant `INSERT` statements, the ingestor aggregates the API responses into memory, saves them locally as Snappy-compressed Parquet files via `PyArrow`, and executes massive bulk loads into PostgreSQL in chunks of 100,000 records.
 
 ---
 
@@ -73,7 +72,7 @@ The entire pipeline—including the database, geospatial dependencies (GDAL/libg
 ```bash
 git clone [https://github.com/shitiwa10/nyc-data-pipeline.git](https://github.com/shitiwa10/nyc-data-pipeline.git)
 cd nyc-data-pipeline
-cp .env.example .env  # Update with your desired database credentials
+cp .env.example .env  
 ```
 
 **2. Build the custom Airflow environment**
