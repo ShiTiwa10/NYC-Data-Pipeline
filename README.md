@@ -2,7 +2,7 @@
 
 ![Tech](https://img.shields.io/badge/Stack-Airflow_|_dbt_|_PostGIS-blue)
 
-This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City[cite: 1]. The pipeline ingests chaotic, disparate urban data streams—from raw Socrata APIs to geospatial polygons—and instills analytical order, creating a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns.
+This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City. The pipeline ingests chaotic, disparate urban data streams—from raw Socrata APIs to geospatial polygons—and instills analytical order, creating a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns.
 
 ---
 
