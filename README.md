@@ -1,32 +1,54 @@
 # Urban Mobility Context Engine (NYC)
 
-![Status](https://img.shields.io/badge/Status-🚧_In_Progress-yellow)
+![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
+![Tech](https://img.shields.io/badge/Stack-Airflow_|_dbt_|_PostGIS-blue)
 
-This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City. The pipeline ingests data from disparate sources, models it, and creates a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns.
-
-**Status Update (Nov 15, 2025):** The core architecture, containerized environment, and all ingestion scripts are complete. The full data backfill for Q3 2025 is scheduled to run from November 16-19, 2025.
+This project is an end-to-end data engineering pipeline designed to build a "Context Engine" for analyzing Citibike ridership in New York City[cite: 1]. The pipeline ingests chaotic, disparate urban data streams—from raw Socrata APIs to geospatial polygons—and instills analytical order, creating a final, analytics-ready data product that explains the "why" behind daily and hourly mobility patterns[cite: 1].
 
 ---
 
 ## Tech Stack & Architecture
 
-This pipeline is built on a modern, local-first ELT framework using a **Medallion Architecture**.
+This pipeline is built on a modern, local-first ELT framework utilizing a **Medallion Architecture**[cite: 1].
 
 | Category | Technology |
 | :--- | :--- |
 | **Orchestration** | **Apache Airflow** |
-| **Containerization** | **Docker & Docker Compose** |
-| **Database** | **PostgreSQL + PostGIS/H3** |
+| **Containerization** | **Docker & Docker Compose** (Custom Image) |
+| **Database** | **PostgreSQL + PostGIS** |
 | **Transformation** | **dbt Core** |
-| **Ingestion** | **Python (OOP, Pandas, GeoPandas)** |
-| **Presentation** | **Streamlit** (from a static Parquet export) |
+| **Ingestion** | **Python (OOP, GeoPandas, Boto3, PyArrow)** |
 
 ### The Data Flow (ELT)
 
-1.  **Extract & Load (EL):** Python ingestor classes, orchestrated by Airflow, fetch data from various sources and load it into a **Bronze** `raw` schema in Postgres.
-2.  **Transform (T):** `dbt` runs all transformations, moving data from:
-    * **Silver 🥈:** `staging` models that clean, cast, and test the raw data.
-    * **Gold 🥇:** Final, denormalized `marts` tables (a Star Schema) that join all context layers, ready for analysis.
+```mermaid
+graph LR
+    A[Python / APIs / S3] -->|Extract & Load| B[(Raw / Bronze)]
+    B -->|dbt clean/cast| C[(Staging / Silver)]
+    C -->|dbt join/agg| D[(Marts / Gold)]
+```
+
+1.  **Extract & Load (EL):** Idempotent Python ingestor classes, orchestrated by Airflow via logical execution dates, fetch data from various sources and load it into a **Bronze** `raw` schema in Postgres[cite: 1].
+2.  **Transform (T):** `dbt` runs all downstream transformations[cite: 1]:
+    * **Silver 🥈:** `staging` models that clean, standardize types, and enforce data quality tests[cite: 1].
+    * **Gold 🥇:** Final, denormalized `marts` tables (Star Schema) that join all context layers into a single pane of glass[cite: 1].
+
+---
+
+## Deep Dive: Geospatial & Weather Engineering
+
+Rather than relying on static, generalized weather data for the entirety of New York City, this pipeline implements highly localized geospatial processing to map atmospheric conditions directly to specific boroughs and neighborhoods.
+
+### 1. Shapefile Ingestion & PostGIS Integration
+The spatial foundation is built using the 2020 NYC Neighborhood Tabulation Areas (NTA) shapefiles. The `shapefile_setup.py` script leverages `GeoPandas` and SQLAlchemy to read the `.shp` assets and write the raw geometries directly into a PostGIS-enabled database utilizing the native `to_postgis()` method[cite: 1].
+
+### 2. Dynamic Centroid Extraction
+To achieve micro-climate accuracy, the `WeatherIngestor` dynamically calculates the geometric centroid of every single NYC neighborhood polygon. Because the source shapefiles use a local projected coordinate system, the script reprojects the geometries to WGS 84 (EPSG:4326) on the fly to extract accurate latitude and longitude coordinates for the API payload[cite: 1].
+
+### 3. Asynchronous Rate Limiting & Staging
+Fetching hourly data for over a hundred neighborhood centroids over historical timeframes requires strict traffic control. 
+* **Traffic Shaping:** The ingestor mathematically paces requests to stay under Open-Meteo's 5,000 calls/hour threshold, implementing a rolling cost tracker, a 4-second delay between calls, and automatic hour-long sleep cycles if limits are approached[cite: 1].
+* **Optimized I/O:** Instead of bombarding the database with constant `INSERT` statements, the ingestor aggregates the API responses into memory, saves them locally as Snappy-compressed Parquet files via `PyArrow`, and executes massive bulk loads into PostgreSQL in chunks of 100,000 records[cite: 1].
 
 ---
 
@@ -35,34 +57,35 @@ This pipeline is built on a modern, local-first ELT framework using a **Medallio
 | Context Layer | Data Source | Ingestion Method |
 | :--- | :--- | :--- |
 | **Core Activity** | Citi Bike Trip Data | Python (Boto3 from S3) |
-| **Weather** | Open-Meteo Archive | Python (API per neighborhood centroid) |
+| **Weather** | Open-Meteo Archive | Python (GeoPandas Centroid Mapping) |
 | **Events** | NYC Permitted Events | Python (Generic Socrata API Ingestor) |
 | **Infrastructure** | NYC 311 Service Requests | Python (Generic Socrata API Ingestor) |
 | **Temporal** | NYC Holidays | `dbt seed` (from CSV) |
-| **Geospatial** | NYC Neighborhoods (NTA) | Manual `shp2pgsql` load (one-time setup) |
+| **Geospatial** | NYC Neighborhoods (NTA) | Python (`GeoPandas` to PostGIS) |
 
 ---
 
-## Project Roadmap
+## Local Development & Quick Start
 
-* [x] **Phase 1: Architecture & Setup**
-    * [x] Design ELT pipeline and Medallion architecture.
-    * [x] Configure containerized environment with Docker Compose.
-    * [x] Build all ingestion scripts (Citibike, Socrata, Weather) as idempotent Python classes.
-    * [x] Set up dbt project and connect to Postgres.
-* [ ] **Phase 2: Data Backfill (In Progress)**
-    * [ ] Run one-time setup for static data (Holidays, Shapefiles).
-    * [ ] Execute full data backfill for **Q3 2025 (July, Aug, Sep)**.
-* [ ] **Phase 3: Transformation**
-    * [ ] Build all Silver (staging) dbt models.
-    * [ ] Build all Gold (mart) dbt models, including the final `fct_trip_hourly` table.
-* [ ] **Phase 4: Showcase**
-    * [ ] Export the final Gold data to a static Parquet file.
-    * [ ] Build and deploy a public-facing Streamlit dashboard.
+The entire pipeline—including the database, geospatial dependencies (GDAL/libgdal), and orchestration engine—is fully containerized[cite: 1].
 
-## How to Run (Development)
+**1. Clone the repository and configure credentials**
+```bash
+git clone [https://github.com/shitiwa10/nyc-data-pipeline.git](https://github.com/shitiwa10/nyc-data-pipeline.git)
+cd nyc-data-pipeline
+cp .env.example .env  # Update with your desired database credentials
+```
 
-1.  Clone this repository.
-2.  Create a `.env` file (see `.env.example` for required variables).
-3.  Run `docker-compose up --build` to launch the Airflow and Postgres services.
-4.  *(Detailed setup and run instructions to be added)*
+**2. Build the custom Airflow environment**
+Because the pipeline requires complex geospatial libraries (`geopandas`, `postgis`), the `docker-compose.yml` builds a custom image tailored for spatial ELT.
+```bash
+docker-compose build
+```
+
+**3. Launch the infrastructure**
+```bash
+docker-compose up -d
+```
+
+**4. Trigger the Pipeline**
+Navigate to `http://localhost:8080` (admin/admin). The Airflow scheduler will execute the end-to-end `nyc_context_engine_monthly_ingestion` DAG, running the Python EL scripts first, followed immediately by the `dbt build` command to generate the Silver and Gold models.
