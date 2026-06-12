@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: raw_data
+    schema: raw 
+    tables:
+      - name: citibike_trips
+      - name: weather_hourly
+      - name: nyc_311_requests
+      - name: nyc_permitted_events

@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_citibike_trips
+    description: "Cleaned and casted Citibike trip data"
+    columns:
+      - name: trip_id
+        tests:
+          - unique
+          - not_null
+      - name: rider_type
+        tests:
+          - accepted_values:
+              values: ['member', 'casual']

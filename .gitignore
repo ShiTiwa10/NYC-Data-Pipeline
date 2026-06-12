@@ -1,17 +1,32 @@
+# Python / Environments
 __pycache__/
 *.pyc
 data_env/
 test_env/
 .venv/
 
+# Secrets
 .env
 *.env
 
+# Data Files
 data/
 *.parquet
-*.csv
 *.zip
+*.csv
+!dbt/seeds/*.csv  # Exception: allow dbt seed files to be uploaded
 
+# Airflow
+logs/
+airflow.cfg
+airflow-webserver.pid
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# IDE / OS
 .vscode/
 .idea/
 .DS_Store
